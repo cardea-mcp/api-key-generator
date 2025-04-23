@@ -88,7 +88,7 @@ fn init_db(conn: &Connection) -> SqliteResult<()> {
             error!("Failed to create API keys table: {}", e);
             Err(e)
         }
-    }
+        }
 }
 
 // Helper function to generate API key
@@ -303,6 +303,6 @@ async fn main() -> std::io::Result<()> {
             .route("/rotate-api-key", web::post().to(rotate_api_key))
     })
     .bind("127.0.0.1:8081")?  // Change to match the port in your error message
-    .run()
-    .await
+        .run()
+        .await
 }
