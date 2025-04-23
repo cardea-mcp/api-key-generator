@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MetaMask Connector with API Key Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .logo {
+            width: 100px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background-color: #FF9E00;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #E68A00;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .address-box {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            word-break: break-all;
+            background-color: #f9f9f9;
+            display: none;
+        }
+
+        .api-key-box {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            word-break: break-all;
+            background-color: #f9f9f9;
+            display: none;
+        }
+
+        .api-actions {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .status {
+            margin-top: 15px;
+            color: #666;
+        }
+        
+        .copy-btn {
+            background-color: #4CAF50;
+            font-size: 14px;
+            padding: 6px 12px;
+            margin-left: 10px;
+        }
+        
+        .copy-btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://cdn.cdnlogo.com/logos/m/79/metamask.svg" alt="MetaMask Logo" class="logo">
+        <h1>MetaMask Connector</h1>
+        <p>Connect your MetaMask wallet to manage your API keys</p>
+        
+        <button id="connectButton">Connect to MetaMask</button>
+        
+        <div id="addressBox" class="address-box">
+            <h3>Connected Address:</h3>
+            <p id="userAddress">Not connected</p>
+        </div>
+        
+        <div id="apiActions" class="api-actions">
+            <button id="getApiKeyBtn">Get API Key</button>
+            <button id="genApiKeyBtn">Generate New API Key</button>
+            <button id="rotateApiKeyBtn">Rotate API Key</button>
+        </div>
+        
+        <div id="apiKeyBox" class="api-key-box">
+            <h3>Your API Key:</h3>
+            <div style="display: flex; align-items: center; justify-content: center;">
+                <span id="apiKeyDisplay">None</span>
+                <button id="copyApiKey" class="copy-btn">Copy</button>
+            </div>
+        </div>
+        
+        <p id="status" class="status"></p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const connectButton = document.getElementById('connectButton');
+            const userAddress = document.getElementById('userAddress');
+            const addressBox = document.getElementById('addressBox');
+            const apiActions = document.getElementById('apiActions');
+            const apiKeyBox = document.getElementById('apiKeyBox');
+            const apiKeyDisplay = document.getElementById('apiKeyDisplay');
+            const statusElement = document.getElementById('status');
+            const getApiKeyBtn = document.getElementById('getApiKeyBtn');
+            const genApiKeyBtn = document.getElementById('genApiKeyBtn');
+            const rotateApiKeyBtn = document.getElementById('rotateApiKeyBtn');
+            const copyApiKeyBtn = document.getElementById('copyApiKey');
+            
+            let currentAccount = null;
+            const API_BASE_URL = 'http://127.0.0.1:8081';
+
+            // Check if MetaMask is installed
+            function checkIfMetaMaskInstalled() {
+                const { ethereum } = window;
+                if (!ethereum || !ethereum.isMetaMask) {
+                    statusElement.textContent = 'MetaMask is not installed. Please install MetaMask to use this feature.';
+                    connectButton.disabled = true;
+                    return false;
+                }
+                return true;
+            }
+
+            // Connect to MetaMask
+            async function connectToMetaMask() {
+                if (!checkIfMetaMaskInstalled()) return;
+                
+                statusElement.textContent = 'Connecting to MetaMask...';
+                
+                try {
+                    // Request accounts access
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const account = accounts[0];
+                    currentAccount = account;
+                    
+                    // Display the connected address
+                    userAddress.textContent = account;
+                    addressBox.style.display = 'block';
+                    apiActions.style.display = 'block';
+                    statusElement.textContent = 'Connected successfully!';
+                    connectButton.textContent = 'Connected';
+                    connectButton.disabled = true;
+
+                    // Listen for account changes
+                    window.ethereum.on('accountsChanged', function (accounts) {
+                        if (accounts.length === 0) {
+                            // User disconnected
+                            resetUI();
+                        } else {
+                            // User switched accounts
+                            currentAccount = accounts[0];
+                            userAddress.textContent = accounts[0];
+                            statusElement.textContent = 'Account changed!';
+                            apiKeyDisplay.textContent = 'None';
+                        }
+                    });
+                    
+                } catch (error) {
+                    console.error(error);
+                    if (error.code === 4001) {
+                        // User rejected the request
+                        statusElement.textContent = 'Connection rejected. Please try again.';
+                    } else {
+                        statusElement.textContent = 'Error connecting to MetaMask: ' + error.message;
+                    }
+                }
+            }
+            
+            function resetUI() {
+                currentAccount = null;
+                userAddress.textContent = 'Not connected';
+                addressBox.style.display = 'none';
+                apiActions.style.display = 'none';
+                apiKeyBox.style.display = 'none';
+                statusElement.textContent = 'Disconnected from MetaMask';
+                connectButton.textContent = 'Connect to MetaMask';
+                connectButton.disabled = false;
+            }
+            
+            // API Key Functions
+            async function getApiKey() {
+                if (!currentAccount) return;
+                
+                try {
+                    statusElement.textContent = 'Fetching API key...';
+                    const response = await fetch(`${API_BASE_URL}/get-api-key?hex_string=${currentAccount}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    if (data.api_key) {
+                        apiKeyDisplay.textContent = data.api_key;
+                        apiKeyBox.style.display = 'block';
+                        statusElement.textContent = 'API key retrieved successfully!';
+                    } else {
+                        statusElement.textContent = 'No API key found for this address. Please generate one.';
+                    }
+                } catch (error) {
+                    console.error('Error fetching API key:', error);
+                    statusElement.textContent = `Error: ${error.message}`;
+                }
+            }
+            
+            async function generateApiKey() {
+                if (!currentAccount) return;
+                
+                try {
+                    statusElement.textContent = 'Generating new API key...';
+                    const response = await fetch(`${API_BASE_URL}/gen-api-key`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ hex_string: currentAccount })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    if (data.api_key) {
+                        apiKeyDisplay.textContent = data.api_key;
+                        apiKeyBox.style.display = 'block';
+                        statusElement.textContent = 'New API key generated successfully!';
+                    } else {
+                        statusElement.textContent = 'Failed to generate API key.';
+                    }
+                } catch (error) {
+                    console.error('Error generating API key:', error);
+                    statusElement.textContent = `Error: ${error.message}`;
+                }
+            }
+            
+            async function rotateApiKey() {
+                if (!currentAccount) return;
+                
+                try {
+                    statusElement.textContent = 'Rotating API key...';
+                    const response = await fetch(`${API_BASE_URL}/rotate-api-key`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ hex_string: currentAccount })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    if (data.api_key) {
+                        apiKeyDisplay.textContent = data.api_key;
+                        apiKeyBox.style.display = 'block';
+                        statusElement.textContent = 'API key rotated successfully!';
+                    } else {
+                        statusElement.textContent = 'Failed to rotate API key. You may need to generate one first.';
+                    }
+                } catch (error) {
+                    console.error('Error rotating API key:', error);
+                    statusElement.textContent = `Error: ${error.message}`;
+                }
+            }
+            
+            function copyApiKey() {
+                if (apiKeyDisplay.textContent !== 'None') {
+                    navigator.clipboard.writeText(apiKeyDisplay.textContent)
+                        .then(() => {
+                            const originalText = copyApiKeyBtn.textContent;
+                            copyApiKeyBtn.textContent = 'Copied!';
+                            setTimeout(() => {
+                                copyApiKeyBtn.textContent = originalText;
+                            }, 2000);
+                        })
+                        .catch(err => {
+                            console.error('Failed to copy: ', err);
+                            statusElement.textContent = 'Failed to copy API key to clipboard.';
+                        });
+                }
+            }
+
+            // Add event listeners
+            connectButton.addEventListener('click', connectToMetaMask);
+            getApiKeyBtn.addEventListener('click', getApiKey);
+            genApiKeyBtn.addEventListener('click', generateApiKey);
+            rotateApiKeyBtn.addEventListener('click', rotateApiKey);
+            copyApiKeyBtn.addEventListener('click', copyApiKey);
+
+            // Check if MetaMask is installed on page load
+            checkIfMetaMaskInstalled();
+        });
+    </script>
+</body>
+</html>
