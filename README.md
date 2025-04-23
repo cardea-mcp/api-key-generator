@@ -33,21 +33,23 @@ Note: The endpoints are named `/gen-api-key` but the actual handler function is 
 **Response:**
 ```json
 {
-  "api_key": "sk_LrJ8nVYWEFx3Tn50FhwXqA=="
+  "api_key": "sk_...................=="
 }
 ```
 
 ### Get API Key
 
 **Request:**
-```
-GET /get-api-key?hex_string=0xabcdef123456
+```json
+{
+  "hex_string": "0xabcdef123456"
+}
 ```
 
 **Response:**
 ```json
 {
-  "api_key": "sk_LrJ8nVYWEFx3Tn50FhwXqA=="
+  "api_key": "sk_.................=="
 }
 ```
 
@@ -63,7 +65,7 @@ GET /get-api-key?hex_string=0xabcdef123456
 **Response:**
 ```json
 {
-  "api_key": "sk_9sHjZOlG2E1SiWXvDCgTbQ=="
+  "api_key": "sk_................=="
 }
 ```
 
@@ -78,11 +80,11 @@ The server validates that all hex strings:
 1. Make sure you have Rust and Cargo installed.
 2. Clone this repository.
 3. Build the project:
-```
+```console
 cargo build --release
 ```
 4. Run the server:
-```
+```console
 ./target/release/apikey_server
 ```
 
@@ -120,7 +122,7 @@ The server implements comprehensive logging for better debugging and monitoring:
 
 To see more detailed logs, you can set the `RUST_LOG` environment variable:
 
-```
+```console
 # Show all logs (including debug)
 RUST_LOG=debug ./target/release/apikey_server
 
@@ -132,7 +134,7 @@ RUST_LOG=warn ./target/release/apikey_server
 ```
 
 Example log output:
-```
+```console
 [2025-04-23 14:32:15] [INFO] - Starting API Key Server
 [2025-04-23 14:32:15] [INFO] - Initializing database connection to apikeys.db
 [2025-04-23 14:32:15] [INFO] - Database connection established successfully
@@ -144,7 +146,7 @@ Example log output:
 [2025-04-23 14:32:27] [DEBUG] - Generated new API key for hex string: 0x123abc
 [2025-04-23 14:32:27] [DEBUG] - Successfully stored API key in database for: 0x123abc
 [2025-04-23 14:32:27] [INFO] - Successfully created API key for hex string: 0x123abc
-```-04-23 14:32:15] [INFO] - Configuring application with routes and middleware
+[2025-04-23 14:32:15] [INFO] - Configuring application with routes and middleware
 [2025-04-23 14:32:27] [INFO] - Received request to create API key for hex string: 0x123abc
 [2025-04-23 14:32:27] [DEBUG] - Hex string validation passed for: 0x123abc
 [2025-04-23 14:32:27] [DEBUG] - Generated new API key for hex string: 0x123abc
