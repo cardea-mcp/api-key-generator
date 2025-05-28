@@ -22,6 +22,16 @@ struct ApiKeyResponse {
     api_key: String,
 }
 
+#[derive(Deserialize)]
+struct ReverseLookupRequest {
+    api_key: String,
+}
+
+#[derive(Serialize)]
+struct HexStringResponse {
+    hex_string: String,
+}
+
 // Error handling
 #[derive(thiserror::Error, Debug)]
 enum AppError {
@@ -272,6 +282,30 @@ async fn rotate_api_key(
     Ok(HttpResponse::Ok().json(ApiKeyResponse { api_key: new_api_key }))
 }
 
+async fn reverse_lookup_hex(
+    data: web::Json<ReverseLookupRequest>,
+    app_state: web::Data<Arc<AppState>>,
+) -> Result<impl Responder, AppError> {
+    let api_key = &data.api_key;
+    info!("Received request to reverse lookup hex string from API key");
+
+    let db = app_state.db.lock().map_err(|e| {
+        error!("Failed to acquire DB lock: {}", e);
+        AppError::InternalError("Database lock error".into())
+    })?;
+
+    let hex_string: String = db.query_row(
+        "SELECT hex_string FROM api_keys WHERE api_key = ?",
+        params![api_key],
+        |row| row.get(0),
+    ).map_err(|e| match e {
+        rusqlite::Error::QueryReturnedNoRows => AppError::NotFound,
+        other => AppError::DbError(other),
+    })?;
+
+    Ok(HttpResponse::Ok().json(HexStringResponse { hex_string }))
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
@@ -301,6 +335,7 @@ async fn main() -> std::io::Result<()> {
             .route("/gen-api-key", web::post().to(create_api_key))
             .route("/get-api-key", web::get().to(get_api_key))
             .route("/rotate-api-key", web::post().to(rotate_api_key))
+            .route("/reverse-lookup", web::post().to(reverse_lookup_hex))
     })
     .bind("127.0.0.1:8081")?  // Change to match the port in your error message
         .run()
