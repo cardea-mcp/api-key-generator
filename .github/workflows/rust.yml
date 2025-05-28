@@ -43,8 +43,11 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
 
-      - name: Build test
+      - name: cargo check
         run: cargo check --profile=dev
+
+      - name: cargo build release
+        run: cargo build --profile=release
 
   test:
     strategy:
@@ -88,8 +91,11 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
 
-      - name: Build test
+      - name: cargo check
         run: cargo check --profile=dev
+
+      - name: cargo build release
+        run: cargo build --profile=release
 
   test_legacy:
     strategy:
