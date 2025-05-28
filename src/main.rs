@@ -1,15 +1,13 @@
 use actix_cors::Cors;
 use actix_web::http::StatusCode;
-use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer, Responder};
-use anyhow::{Context, Result};
+use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use anyhow::Result;
 use base64::{engine::general_purpose, Engine as _};
-use chrono;
 use log::{debug, error, info, warn};
 use rand::{thread_rng, Rng};
 use rusqlite::{params, Connection, Result as SqliteResult};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
-use uuid::Uuid;
 
 // Request and response structs
 #[derive(Deserialize)]
