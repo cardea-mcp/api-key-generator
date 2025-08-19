@@ -83,12 +83,16 @@ The server validates that all hex strings:
 ```console
 cargo build --release
 ```
-4. Run the server:
+4. Run the API key server:
 ```console
-./target/release/apikey_server
+./target/release/api-key-generator
+# The API key server will start on `127.0.0.1:8081` by default.
+```
+5. Start HTTP server for the users:
+```console
+python -m http.server 8080
 ```
 
-The server will start on `127.0.0.1:8081` by default.
 
 ## CORS Support
 
